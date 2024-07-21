@@ -1,19 +1,20 @@
-# Usar una imagen base oficial de Python
+# Utilizar una imagen base oficial de Python
 FROM python:3.11-slim
 
-# Establecer el directorio de trabajo en el contenedor
+# Establecer el directorio de trabajo
 WORKDIR /app
 
-# Copiar los archivos de requisitos y el código fuente al contenedor
+# Copiar el archivo requirements.txt y el código fuente al contenedor
 COPY requirements.txt .
-COPY main.py .
-COPY templates ./templates
+COPY api_model.py .
+COPY database.py .
+COPY templates/ ./templates/
 
-# Instalar las dependencias necesarias
-RUN pip install --no-cache-dir -r requirements.txt
+# Instalar las dependencias
+RUN pip install -r requirements.txt
 
-# Exponer el puerto en el que correrá la aplicación
-EXPOSE 8000
+# Configurar variables de entorno para la base de datos
+ENV DATABASE_URL="mysql+mysqlconnector://admin:12345678@database-1.c9iyc4yeeeax.eu-north-1.rds.amazonaws.com:3306"
 
-# Comando para ejecutar la aplicación con Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Comando para ejecutar la aplicación
+CMD ["uvicorn", "api_model:app", "--host", "0.0.0.0", "--port", "8000"]
