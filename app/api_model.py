@@ -8,6 +8,7 @@ import uvicorn
 from database import *
 from huggingface_hub import cached_assets_path
 from sqlalchemy.exc import SQLAlchemyError
+from pydantic import BaseModel
 
 
 # Requisito para el modelo pre-entrenado
@@ -40,6 +41,10 @@ except Exception as e:
 # Configurar Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
+
+class Query(BaseModel):
+    text: str
+    
 
 # Dependencia para la base de datos
 def get_db():
@@ -74,17 +79,14 @@ def read_root(request: Request):
 
 # Endpoint para enviar consultas
 @app.post("/query")
-def query_model(query, db: Session = Depends(get_db)):
+def query_model(query: Query, db: Session = Depends(get_db)):
     try:
-        # Imprimir el texto de la consulta para depuración
-        print(f"query: {query.query}")
+        print(f"query: {query.text}")
+        response = get_response(query.text)
         
-        # Obtener la respuesta del modelo
-        response = get_response(query.query)
-        
-        # Intentar guardar en la base de datos
+        # Guardar en la base de datos
         try:
-            db_query_response = QueryResponse(query=query.query, response=response)
+            db_query_response = QueryResponse(query=query.text, response=response)
             db.add(db_query_response)
             db.commit()
             db.refresh(db_query_response)
@@ -94,9 +96,7 @@ def query_model(query, db: Session = Depends(get_db)):
             db.rollback()
             raise HTTPException(status_code=500, detail="Database error")
         
-        # Retornar la respuesta
         return {"response": response}
-    
     except Exception as e:
         print(f"Error in query_model: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
